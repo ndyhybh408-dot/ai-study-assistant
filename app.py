@@ -1,5 +1,5 @@
 import streamlit as st
-from openai import OpenAI
+from google import genai
 
 st.set_page_config(
     page_title="AI Study Assistant",
@@ -7,24 +7,22 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("📚 AI Study Assistant")
-st.write("مساعدك الذكي للمذاكرة وحل الأسئلة وشرح الدروس")
+st.title("📚 AI Study Assistant (Gemini)")
+st.write("مساعدك الذكي للمذاكرة وحل الأسئلة وشرح الدروس (مجاني)")
 
-# API Key
+# قراءة مفتاح Gemini من الـ Secrets
 try:
-    api_key = st.secrets["OPENAI_API_KEY"]
+    api_key = st.secrets["GEMINI_API_KEY"]
 except Exception:
-    st.error("⚠️ لم يتم إعداد مفتاح OpenAI API بعد.")
+    st.error("⚠️ لم يتم إعداد مفتاح GEMINI_API_KEY بعد في الـ Secrets.")
     st.stop()
 
-client = OpenAI(api_key=api_key)
+# إعداد عميل جوجل جيميناي
+client = genai.Client(api_key=api_key)
 
-# حفظ المحادثة وتعليمات النظام
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {
-            "role": "system",
-            "content": """أنت مساعد مذاكرة عربي للطلاب.
+# إعدادات شخصية المساعد (System Instructions)
+system_instruction = """
+أنت مساعد مذاكرة عربي للطلاب.
 مهمتك:
 - شرح الدروس بطريقة بسيطة وواضحة.
 - حل المسائل خطوة بخطوة.
@@ -33,21 +31,22 @@ if "messages" not in st.session_state:
 - إذا كان السؤال علميًا، اذكر السبب والتفسير.
 - إذا كان السؤال رياضيات، وضح خطوات الحل.
 - إذا كان السؤال غير واضح، اطلب توضيح الجزء الناقص.
-- لا تخترع معلومات. إذا لم تكن متأكدًا، وضح ذلك."""
-        }
-    ]
+- لا تخترع معلومات. إذا لم تكن متأكدًا، وضح ذلك.
+"""
 
-# عرض المحادثة السابقة (تخطي رسالة الـ system لكي لا تظهر للطالب)
+# حفظ المحادثة
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# عرض المحادثة السابقة
 for message in st.session_state.messages:
-    if message["role"] != "system":
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
 # سؤال الطالب
 question = st.chat_input("اكتب سؤالك هنا...")
 
 if question:
-    # إضافة سؤال المستخدم للسجل
     st.session_state.messages.append(
         {"role": "user", "content": question}
     )
@@ -58,16 +57,24 @@ if question:
     with st.chat_message("assistant"):
         with st.spinner("جاري التفكير..."):
             try:
-                # استخدام النموذج المدعوم gpt-4o-mini
-                response = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=st.session_state.messages
+                # تجهيز محتوى المحادثة ليرسله لـ Gemini
+                contents = []
+                for msg in st.session_state.messages:
+                    role = "user" if msg["role"] == "user" else "model"
+                    contents.append({"role": role, "parts": [{"text": msg["content"]}]})
+
+                # استخدام النموذج السريع والمجاني gemini-2.5-flash
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=contents,
+                    config={
+                        "system_instruction": system_instruction,
+                    }
                 )
 
-                answer = response.choices[0].message.content
+                answer = response.text
                 st.markdown(answer)
 
-                # حفظ إجابة المساعد في السجل
                 st.session_state.messages.append(
                     {"role": "assistant", "content": answer}
                 )
