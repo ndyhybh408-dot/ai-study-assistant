@@ -10,7 +10,7 @@ st.set_page_config(
 st.title("📚 AI Study Assistant (Gemini)")
 st.write("مساعدك الذكي للمذاكرة وشرح الدروس (مجاني)")
 
-# المفتاح جاهز هنا مباشرة ليعمل بدون أي أخطاء
+# مفتاحك المعتمد
 API_KEY = "AQ.Ab8RN6Iy3Wu2vHj_86tRUGmwaKQxyPo1lCUnQqjkwVCxyA8bKA"
 
 try:
@@ -42,8 +42,9 @@ if question:
                     role = "user" if msg["role"] == "user" else "model"
                     contents.append({"role": role, "parts": [{"text": msg["content"]}]})
 
+                # استخدام النموذج المحدث المطلوب
                 response = client.models.generate_content(
-                    model="gemini-2.5-flash",
+                    model="gemini-3.8-flash",
                     contents=contents,
                     config={"system_instruction": system_instruction}
                 )
