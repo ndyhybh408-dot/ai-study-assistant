@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 from google import genai
 
 st.set_page_config(
@@ -10,13 +11,15 @@ st.set_page_config(
 st.title("📚 AI Study Assistant (Gemini)")
 st.write("مساعدك الذكي للمذاكرة وشرح الدروس (مجاني)")
 
-# مفتاحك المعتمد
+# وضع المفتاح بطريقة مباشرة ومتوافقة مع مكتبة genai
 API_KEY = "AQ.Ab8RN6Iy3Wu2vHj_86tRUGmwaKQxyPo1lCUnQqjkwVCxyA8bKA"
 
 try:
-    client = genai.Client(api_key=API_KEY)
+    # تهيئة العميل باستخدام متغير البيئة لضمان عدم حدوث خطأ 401
+    os.environ["GEMINI_API_KEY"] = API_KEY
+    client = genai.Client()
 except Exception as e:
-    st.error(f"خطأ: {e}")
+    st.error(f"خطأ في الاتصال: {e}")
 
 system_instruction = "أنت مساعد مذاكرة عربي للطلاب. مهمتك شرح الدروس وحل المسائل ببساطة."
 
@@ -42,9 +45,8 @@ if question:
                     role = "user" if msg["role"] == "user" else "model"
                     contents.append({"role": role, "parts": [{"text": msg["content"]}]})
 
-                # استخدام النموذج المحدث المطلوب
                 response = client.models.generate_content(
-                    model="gemini-3.8-flash",
+                    model="gemini-2.5-flash",
                     contents=contents,
                     config={"system_instruction": system_instruction}
                 )
@@ -52,4 +54,5 @@ if question:
                 st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
             except Exception as e:
-                st.error(f"حدث خطأ: {e}")
+                st.error(f"عذراً، حدث خطأ: {e}")
+ 
